@@ -1,55 +1,65 @@
 import subprocess
 import time
+from src.tools.base import BaseTool
 
-def run_dns(host: str) -> dict:
+
+class DNSTool(BaseTool):
     """
     target -> host
     cmd -> nslookup
-    host: "google.com"
     """
 
-    start = time.time()
+    def run(self, target: str) -> dict:
 
-    result = subprocess.run(
-        ["nslookup", host],
-        capture_output=True,
-        text=True
-    )
+        start = time.time()
 
-    duration = time.time() - start
+        result = subprocess.run(
+            ["nslookup", target],
+            capture_output=True,
+            text=True
+        )
 
-    # deal with error
-    if result.returncode != 0:
+        duration = time.time() - start
+
+        # deal with error
+        if result.returncode != 0:
+            return {
+                "tool_name": "dns",
+                "target": target,
+                "success": False,
+                "data": {},
+                "raw_output": result.stdout + result.stderr,
+                "error": f"DNS lookup failed for {target}",
+                "duration_seconds": duration
+            }
+
+        # parse output
+        '''
+        Server:         10.152.120.248
+        Address:        10.152.120.248#53
+
+        Non-authoritative answer:
+        Name:   google.com
+        Address: 142.250.189.238
+        '''
+        lines = result.stdout.split("\n")
+
+        ip_addresses = []
+
+        for line in lines:
+            if line.startswith("Address:") and "#" not in line:
+                ip_addresses.append(line.split()[1])
+
         return {
             "tool_name": "dns",
-            "target": host,
-            "success": False,
-            "data": {},
-            "raw_output": result.stdout + result.stderr,
-            "error": f"DNS lookup failed for {host}",
+            "target": target,
+            "success": True,
+            "data": {
+                "resolved": len(ip_addresses) > 0,
+                "ip_addresses": ip_addresses,
+                "response_time_ms": round(duration * 1000, 2)
+            },
+            "raw_output": result.stdout,
+            "error": "",
             "duration_seconds": duration
         }
-    
-    lines = result.stdout.split("\n")
-
-    dns_server = None
-    resolved_ip = None
-
-    for line in lines:
-        if line.startswith("Server:"):
-            dns_server = line.split()[1]
-        
-        if line.startswith("Address:") and "#" not in line:
-            resolved_ip = line.split()[1]
-    return {
-        "tool_name": "dns",
-        "target": host,
-        "success": True,
-        "data": {
-            "dns_server": dns_server,
-            "resolved_ip": resolved_ip
-        },
-        "raw_output": result.stdout,
-        "error": "",
-        "duration_seconds": duration
-    }
