@@ -1,72 +1,69 @@
+# src/cli.py
+
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.tools.ping import run_ping
-from src.tools.dns import run_dns
-from src.tools.traceroute import run_traceroute
+from src.agent.core import diagnose
+from src.agent.llm import DEFAULT_MODEL, MODEL_OPTIONS
+
+
+def format_diagnosis(result):
+    # turn the result dict into readable terminal output
+    lines = [
+        "## Summary",
+        result.get("summary", ""),
+        "",
+        "## Root Cause",
+        result.get("root_cause", ""),
+        "",
+        "## Recommendations",
+    ]
+    for i, rec in enumerate(result.get("recommendations", []), 1):
+        lines.append(f"{i}. {rec}")
+    return "\n".join(lines)
+
 
 def main():
-    print("=" * 50)
-    print("  Network Diagnostic Agent")
-    print("=" * 50)
-    print("Describe your network issue and I will run")
-    print("the appropriate diagnostics for you.")
-    print("Type 'exit' to quit.")
-    print("=" * 50)
+    """
+    usage:
+        python src/cli.py diagnose "I can't load any websites"
+        python src/cli.py diagnose "I can't load any websites" --model gpt-4o
+    """
+    args = sys.argv[1:]
 
-    while True:
-        user_input = input("\nWhat's your network issue? > ").strip()
+    if len(args) < 2:
+        print("Usage: python src/cli.py diagnose \"<symptom>\" [--model <model>]")
+        print("\nAvailable models:")
+        for model_id, label in MODEL_OPTIONS.items():
+            print(f"  {model_id:35s} {label}")
+        sys.exit(1)
 
-        if user_input.lower() == "exit":
-            print("Goodbye!")
-            break
+    command = args[0]
+    symptom = args[1]
 
-        if not user_input:
-            print("Please describe your issue.")
-            continue
+    if command != "diagnose":
+        print(f"Unknown command: {command}")
+        print("Available commands: diagnose")
+        sys.exit(1)
 
-        diagnose(user_input)
+    # check if --model flag was passed
+    model = DEFAULT_MODEL
+    if "--model" in args:
+        idx = args.index("--model")
+        if idx + 1 < len(args):
+            model = args[idx + 1]
+        else:
+            print("Error: --model needs a model name after it")
+            sys.exit(1)
 
-def diagnose(user_input: str):
-    print(f"\nAnalyzing: '{user_input}'")
-    print("Running diagnostics...\n")
+    result = diagnose(symptom, model=model)
+    print(format_diagnosis(result))
 
-    # 从用户输入里提取目标 host
-    # 现在用简单方法：找输入里有没有域名，没有就默认 google.com
-    words = user_input.lower().split()
-    host = "google.com"  # 默认目标
-    for word in words:
-        if "." in word and not word.startswith("."):
-            host = word
-            break
 
-    print(f"Target host: {host}\n")
-
-    # 运行三个工具
-    print("[1/3] Running ping...")
-    ping_result = run_ping(host)
-    print(f"      Packet loss: {ping_result['data'].get('packet_loss_percent')}%")
-    print(f"      Avg RTT: {ping_result['data'].get('avg_rtt_ms')} ms")
-
-    print("\n[2/3] Running DNS lookup...")
-    dns_result = run_dns(host)
-    print(f"      DNS server: {dns_result['data'].get('dns_server')}")
-    print(f"      Resolved IP: {dns_result['data'].get('resolved_ip')}")
-
-    print("\n[3/3] Running traceroute...")
-    traceroute_result = run_traceroute(host)
-    print(f"      Total hops: {traceroute_result['data'].get('total_hops')}")
-    print(f"      Completed: {traceroute_result['data'].get('completed')}")
-
-    print("\n--- Diagnostic Summary ---")
-    print(f"Host:         {host}")
-    print(f"Reachable:    {ping_result['success']}")
-    print(f"DNS resolved: {dns_result['success']}")
-    print(f"Route traced: {traceroute_result['success']}")
-    print("--------------------------")
-    print("(Agent interpretation coming in Iter 2)")
-    
 if __name__ == "__main__":
     main()
