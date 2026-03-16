@@ -6,7 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Status](https://img.shields.io/badge/status-Iter%201%20complete-orange)]()
+[![Status](https://img.shields.io/badge/status-Iter%202%20complete-brightgreen)]()
 [![CS5700](https://img.shields.io/badge/Northeastern-CS%205700-red)]()
 
 ---
@@ -87,7 +87,7 @@ User: "I can't load any websites"
    plain-English output to user
 ```
 
-### Iter 2 — ReAct Loop (In Progress)
+### Iter 2 — ReAct Loop (Complete)
 
 Instead of running all tools blindly, the agent uses a
 **ReAct (Reasoning + Acting)** loop to make decisions between each tool call:
@@ -128,7 +128,7 @@ adaptively, based on evidence — rather than running every tool every time.
 
 ---
 
-### Feature 2 — Intelligent Tool Selection with Visible Reasoning 🔄 (Iter 2)
+### Feature 2 — Intelligent Tool Selection with Visible Reasoning ✅ (Iter 2)
 > **Who:** As a networking student learning how to troubleshoot
 >
 > **Why:** So that I can observe how an expert systematically narrows down problems
@@ -216,14 +216,42 @@ python src/cli.py diagnose
 **Example output:**
 ```
 Analyzing: I can't load any websites
-Running diagnostics...
+Model: gpt-4o-mini
+Starting ReAct loop...
 
-  Target identified: 8.8.8.8
-  Running PingTool on 8.8.8.8...
-  Running DNSTool on 8.8.8.8...
-  Running TracerouteTool on 8.8.8.8...
+  Step 1: asking LLM what to do next...
+  Thought: General connectivity issue — check baseline first.
+  Action:  run ping
+  Observation: OBSERVATION: ping result:
+Status: SUCCESS
+Data: {'packet_loss_percent': 0.0, 'avg_rtt_ms': 12.3}...
 
-Generating diagnosis...
+  Step 2: asking LLM what to do next...
+  Thought: Network layer is fine. The issue might be DNS.
+  Action:  run dns
+  Observation: OBSERVATION: dns result:
+Status: FAILED
+Error: DNS lookup failed for 8.8.8.8...
+
+  Step 3: asking LLM what to do next...
+  Thought: DNS resolution is failing. I have enough to diagnose.
+  → Diagnosis ready after 3 step(s), 2 tool(s) used
+
+## Reasoning Trace
+
+Step 1:
+  Thought: General connectivity issue — check baseline first.
+  Action:  run ping
+
+Step 2:
+  Thought: Network layer is fine. The issue might be DNS.
+  Action:  run dns
+
+Step 3:
+  Thought: DNS resolution is failing. I have enough to diagnose.
+  Action:  provide final diagnosis
+
+(3 step(s) taken, 2 tool(s) used: ping, dns)
 
 ## Summary
 Ping to 8.8.8.8 is succeeding but DNS resolution is failing,
@@ -242,7 +270,7 @@ DNS failure — your device cannot resolve hostnames to IP addresses.
 
 ```bash
 python app.py
-# Open http://localhost:5000
+# Open http://localhost:5001
 ```
 
 The web interface includes a model selector — no terminal knowledge required.
@@ -254,7 +282,7 @@ The web interface includes a model selector — no terminal knowledge required.
 | Iteration | Weeks | Feature | Status |
 |-----------|-------|---------|--------|
 | Iter 1 | 5–7 | Basic diagnostics + LLM explanation + web UI | ✅ Complete |
-| Iter 2 | 8–9 | ReAct loop — adaptive tool selection | 🔄 In progress |
+| Iter 2 | 8–9 | ReAct loop — adaptive tool selection | ✅ Complete |
 | Iter 3 | 10–11 | Docker fault injection + multi-model evaluation | ⬜ Planned |
 | Final | 12–13 | Report + presentation + public dataset | ⬜ Planned |
 
