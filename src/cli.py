@@ -8,13 +8,35 @@ load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.agent.core import diagnose
+from src.agent.core import diagnose, diagnose_react
 from src.agent.llm import DEFAULT_MODEL, MODEL_OPTIONS
 
 
 def format_diagnosis(result):
     # turn the result dict into readable terminal output
-    lines = [
+    lines = []
+
+    # show the reasoning chain produced by the ReAct loop
+    trace = result.get("react_trace", [])
+    if trace:
+        lines.append("## Reasoning Trace")
+        for step in trace:
+            lines.append(f"\nStep {step['step']}:")
+            lines.append(f"  Thought: {step['thought']}")
+            action = step["action"]
+            if action == "DIAGNOSE":
+                lines.append("  Action:  provide final diagnosis")
+            else:
+                lines.append(f"  Action:  run {action}")
+        tools_used = result.get("tools_used", [])
+        steps = result.get("steps_taken", 0)
+        lines.append(
+            f"\n({steps} step(s) taken, "
+            f"{len(tools_used)} tool(s) used: {', '.join(tools_used) or 'none'})"
+        )
+        lines.append("")
+
+    lines += [
         "## Summary",
         result.get("summary", ""),
         "",
@@ -61,7 +83,7 @@ def main():
             print("Error: --model needs a model name after it")
             sys.exit(1)
 
-    result = diagnose(symptom, model=model)
+    result = diagnose_react(symptom, model=model)
     print(format_diagnosis(result))
 
 

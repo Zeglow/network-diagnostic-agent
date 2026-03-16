@@ -9,7 +9,7 @@ load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.agent.core import diagnose
+from src.agent.core import diagnose_react
 from src.agent.llm import DEFAULT_MODEL, MODEL_OPTIONS
 
 app = Flask(__name__)
@@ -84,6 +84,26 @@ HTML = """
     <div class="card-body p-4">
       <h5 class="fw-bold mb-4">Diagnosis</h5>
 
+      {% if result.react_trace %}
+      <div class="mb-3">
+        <div class="label">Reasoning Trace</div>
+        {% for step in result.react_trace %}
+        <div class="mb-1 font-monospace" style="font-size:0.82rem;">
+          <span class="text-secondary">Step {{ step.step }}</span>
+          &nbsp;·&nbsp;
+          <span class="text-primary">Thought:</span> {{ step.thought }}
+          &nbsp;·&nbsp;
+          <span class="text-success">Action:</span>
+          {% if step.action == "DIAGNOSE" %}final diagnosis{% else %}run {{ step.action }}{% endif %}
+        </div>
+        {% endfor %}
+        <div class="text-muted mt-1" style="font-size:0.78rem;">
+          {{ result.steps_taken }} step(s) · tools used: {{ result.tools_used | join(", ") or "none" }}
+        </div>
+      </div>
+      <hr class="my-3">
+      {% endif %}
+
       <div class="mb-3">
         <div class="label">Summary</div>
         <p class="mb-0">{{ result.summary }}</p>
@@ -145,7 +165,7 @@ def run_diagnosis():
 
     if symptom:
         try:
-            result = diagnose(symptom, model=model)
+            result = diagnose_react(symptom, model=model)
         except Exception as e:
             error = f"Diagnosis failed: {e}"
 

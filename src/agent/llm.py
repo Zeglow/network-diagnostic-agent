@@ -128,3 +128,117 @@ def get_diagnosis(symptom, tool_results, model=DEFAULT_MODEL):
         raw = _call_openai(messages, model)  # default to openai
 
     return _parse_json(raw)
+
+def get_react_decision(conversation_history: list[dict], model: str = DEFAULT_MODEL) -> str:
+    """
+    Send the current conversation history to the LLM and get its next decision.
+    
+    In the ReAct loop, this is called after every tool run.
+    The LLM sees the full history and decides: run another tool, or give final diagnosis.
+    
+    Args:
+        conversation_history: Full list of messages so far (system + user + assistant turns)
+        model: LLM model to use
+    
+    Returns:
+        Raw string response from LLM — either "THOUGHT/ACTION" or "THOUGHT/DIAGNOSIS"
+    """
+    if model in OPENAI_MODELS:
+        from openai import OpenAI
+        client = OpenAI()
+        # Note: no response_format=json_object here — ReAct responses are plain text,
+        # not JSON. The DIAGNOSIS block inside the response is parsed by parse_react_response.
+        response = client.chat.completions.create(
+            model=model,
+            messages=conversation_history,
+            temperature=0.3,
+            max_tokens=600,
+        )
+        return response.choices[0].message.content
+
+    elif model in ANTHROPIC_MODELS:
+        import anthropic
+        client = anthropic.Anthropic()
+        system = next((m["content"] for m in conversation_history if m["role"] == "system"), "")
+        user_messages = [m for m in conversation_history if m["role"] != "system"]
+        response = client.messages.create(
+            model=model,
+            system=system,
+            messages=user_messages,
+            max_tokens=600,
+            temperature=0.3,
+        )
+        return response.content[0].text
+
+    elif model in GOOGLE_MODELS:
+        import google.generativeai as genai
+        import os
+        genai.configure(api_key=os.environ.get("GOOGLE_API_KEY", ""))
+        system = next((m["content"] for m in conversation_history if m["role"] == "system"), "")
+        # Build conversation for Google
+        history = []
+        for m in conversation_history:
+            if m["role"] == "user":
+                history.append({"role": "user", "parts": [m["content"]]})
+            elif m["role"] == "assistant":
+                history.append({"role": "model", "parts": [m["content"]]})
+        gen_model = genai.GenerativeModel(
+            model_name=model,
+            system_instruction=system,
+            generation_config=genai.GenerationConfig(temperature=0.3),
+        )
+        chat = gen_model.start_chat(history=history[:-1])
+        response = chat.send_message(history[-1]["parts"][0])
+        return response.text
+
+    elif model in GROQ_MODELS:
+        from groq import Groq
+        client = Groq()
+        response = client.chat.completions.create(
+            model=model,
+            messages=conversation_history,
+            temperature=0.3,
+            max_tokens=600,
+        )
+        return response.choices[0].message.content
+
+    else:
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.chat.completions.create(
+            model=model,
+            messages=conversation_history,
+            temperature=0.3,
+            max_tokens=600,
+        )
+        return response.choices[0].message.content
+
+
+def parse_react_response(response: str) -> dict:
+    """
+    Parse the LLM's ReAct response into a structured dict.
+    
+    Returns one of:
+        {"type": "action", "thought": "...", "tool": "ping"}
+        {"type": "diagnosis", "thought": "...", "diagnosis": {...}}
+        {"type": "error", "raw": "..."}
+    """
+    lines = response.strip().split("\n")
+    thought = ""
+    
+    for i, line in enumerate(lines):
+        if line.startswith("THOUGHT:"):
+            thought = line.replace("THOUGHT:", "").strip()
+        
+        elif line.startswith("ACTION:"):
+            tool = line.replace("ACTION:", "").strip().lower()
+            return {"type": "action", "thought": thought, "tool": tool}
+        
+        elif line.startswith("DIAGNOSIS:"):
+            # Everything after DIAGNOSIS: is the JSON block
+            json_str = "\n".join(lines[i+1:]).strip()
+            diagnosis = _parse_json(json_str)
+            return {"type": "diagnosis", "thought": thought, "diagnosis": diagnosis}
+    
+    # If we couldn't parse it, return error
+    return {"type": "error", "raw": response}
