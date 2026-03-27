@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: client
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - testnet
+    depends_on:
+      - target
+    volumes:
+      - ./faults:/faults
+
+  target:
+    build:
+      context: .
+      dockerfile: Dockerfile.target
+    container_name: target
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - testnet
+
+networks:
+  testnet:
+    driver: bridge
