@@ -1,0 +1,12 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    iputils-ping \
+    net-tools \
+    iproute2 \
+    iptables \
+    nginx \
+    dnsutils \
+    && rm -rf /var/lib/apt/lists/*
+
+CMD ["nginx", "-g", "daemon off;"]
