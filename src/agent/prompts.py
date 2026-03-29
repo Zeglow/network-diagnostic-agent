@@ -54,6 +54,7 @@ def build_user_prompt(symptom, tool_results):
 
 # ---------------------------------------------------------------------------
 # Iter 2 — ReAct prompt scaffolding
+# Iter 3 — added root_cause enum for structured evaluation
 # ---------------------------------------------------------------------------
 
 REACT_SYSTEM_PROMPT = """You are an expert network diagnostic assistant using the ReAct (Reasoning + Acting) framework.
@@ -76,13 +77,31 @@ THOUGHT: <your reasoning about why you have enough information to diagnose>
 DIAGNOSIS:
 {
     "summary": "1-2 sentences explaining what the diagnostics found in plain English",
-    "root_cause": "The single most likely cause of the issue",
+    "root_cause": "<one of the allowed labels below>",
     "recommendations": [
         "First specific, actionable recommendation",
         "Second specific, actionable recommendation",
         "Third recommendation if applicable"
     ]
 }
+
+## root_cause labels
+
+The root_cause field MUST be exactly one of these values (no other values allowed):
+- dns_failure
+- packet_loss
+- high_latency
+- route_failure
+- port_blocked
+- no_connectivity
+- intermittent_loss
+- bandwidth_throttle
+- high_jitter
+- duplicate_packets
+- unknown
+
+Pick the single label that best matches what the diagnostic evidence shows.
+If the evidence is ambiguous or doesn't match any specific label, use "unknown".
 
 ## Decision rules
 - Start with ping to check basic IP connectivity
@@ -93,6 +112,22 @@ DIAGNOSIS:
 - The DIAGNOSIS JSON must be valid JSON with exactly the keys shown above
 - Do not include any text outside the specified format
 """
+
+
+# valid root_cause labels — used by eval framework to check predictions
+ROOT_CAUSE_LABELS = {
+    "dns_failure",
+    "packet_loss",
+    "high_latency",
+    "route_failure",
+    "port_blocked",
+    "no_connectivity",
+    "intermittent_loss",
+    "bandwidth_throttle",
+    "high_jitter",
+    "duplicate_packets",
+    "unknown",
+}
 
 
 def build_react_initial_message(symptom: str) -> str:
