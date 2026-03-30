@@ -39,16 +39,16 @@ DNS_TEST_DOMAIN = "google.com"
 
 
 SCENARIOS = [
-    {"id": 1,  "name": "DNS Failure",       "ground_truth": "dns_failure",       "symptom": "I can't load any websites, nothing resolves",              "script": "01_dns_failure.sh"},
-    {"id": 2,  "name": "High Packet Loss",  "ground_truth": "packet_loss",       "symptom": "My internet is really unreliable, pages half-load",        "script": "02_packet_loss.sh"},
-    {"id": 3,  "name": "High Latency",      "ground_truth": "high_latency",      "symptom": "Everything loads but it takes forever",                    "script": "03_high_latency.sh"},
-    {"id": 4,  "name": "Route Failure",      "ground_truth": "route_failure",     "symptom": "I can't reach the server at all, connection refused",      "script": "04_route_failure.sh"},
-    {"id": 5,  "name": "Port Blocked",       "ground_truth": "port_blocked",      "symptom": "I can ping the server but the website won't load",        "script": "05_port_blocked.sh"},
-    {"id": 6,  "name": "Complete Outage",    "ground_truth": "no_connectivity",   "symptom": "Nothing works at all, no internet",                       "script": "06_complete_outage.sh"},
-    {"id": 7,  "name": "Intermittent Loss",  "ground_truth": "intermittent_loss", "symptom": "My connection keeps cutting in and out randomly",          "script": "07_intermittent_loss.sh"},
-    {"id": 8,  "name": "Bandwidth Throttle", "ground_truth": "bandwidth_throttle","symptom": "Downloads are extremely slow, pages load partially",       "script": "08_bandwidth_throttle.sh"},
-    {"id": 9,  "name": "High Jitter",        "ground_truth": "high_jitter",       "symptom": "Video calls keep freezing and audio is choppy",            "script": "09_high_jitter.sh"},
-    {"id": 10, "name": "Duplicate Packets",  "ground_truth": "duplicate_packets", "symptom": "Web pages load weirdly, some things appear twice or glitch","script": "10_duplicate_packets.sh"},
+    {"id": 1,  "name": "DNS Failure",       "ground_truth": "dns_failure",       "symptom": "My internet seems broken, websites just won't come up",                "script": "01_dns_failure.sh"},
+    {"id": 2,  "name": "High Packet Loss",  "ground_truth": "packet_loss",       "symptom": "My internet keeps glitching, stuff only half works",                   "script": "02_packet_loss.sh"},
+    {"id": 3,  "name": "High Latency",      "ground_truth": "high_latency",      "symptom": "The internet is being really slow today",                              "script": "03_high_latency.sh"},
+    {"id": 4,  "name": "Route Failure",      "ground_truth": "route_failure",     "symptom": "I can't connect to the server, it just times out",                     "script": "04_route_failure.sh"},
+    {"id": 5,  "name": "Port Blocked",       "ground_truth": "port_blocked",      "symptom": "Something is wrong with the server, I can't access it",               "script": "05_port_blocked.sh"},
+    {"id": 6,  "name": "Complete Outage",    "ground_truth": "no_connectivity",   "symptom": "My internet is not working",                                           "script": "06_complete_outage.sh"},
+    {"id": 7,  "name": "Intermittent Loss",  "ground_truth": "intermittent_loss", "symptom": "My network is unstable, things randomly stop working",                 "script": "07_intermittent_loss.sh"},
+    {"id": 8,  "name": "Bandwidth Throttle", "ground_truth": "bandwidth_throttle","symptom": "Everything is super slow, feels like dial-up internet",                "script": "08_bandwidth_throttle.sh"},
+    {"id": 9,  "name": "High Jitter",        "ground_truth": "high_jitter",       "symptom": "My Zoom calls are terrible today, keeps lagging",                      "script": "09_high_jitter.sh"},
+    {"id": 10, "name": "Duplicate Packets",  "ground_truth": "duplicate_packets", "symptom": "Something weird is going on with my network, pages look messed up",    "script": "10_duplicate_packets.sh"},
 ]
 
 COST_PER_CALL = {
@@ -92,10 +92,10 @@ def docker_exec(cmd, timeout=30):
         return "", "timeout", 1
 
 
-def run_ping_docker(target=TARGET_IP, count=10):
-    """Ping the target IP inside the container. Uses 10 packets to detect packet loss."""
+def run_ping_docker(target=TARGET_IP, count=20):
+    """Ping the target IP inside the container. Uses 20 packets to detect packet loss patterns."""
     start = time.time()
-    stdout, stderr, rc = docker_exec(["ping", "-c", str(count), "-W", "3", target], timeout=45)
+    stdout, stderr, rc = docker_exec(["ping", "-c", str(count), "-W", "2", target], timeout=120)
     duration = time.time() - start
 
     if rc != 0 and "100% packet loss" not in stdout:
@@ -201,10 +201,60 @@ def run_traceroute_docker(target=TARGET_IP):
     }
 
 
+def run_curl_docker(target=TARGET_IP):
+    """Test HTTP connectivity and measure download speed inside the container."""
+    start = time.time()
+    # use curl to fetch the target's web page, measure speed
+    # -s silent, -o /dev/null discard body, -w write out stats, --max-time 10s timeout
+    stdout, stderr, rc = docker_exec([
+        "curl", "-s", "-o", "/dev/null",
+        "-w", "http_code:%{http_code} time_total:%{time_total} speed_download:%{speed_download} size_download:%{size_download}",
+        "--max-time", "10",
+        f"http://{target}/",
+    ], timeout=15)
+    duration = time.time() - start
+
+    if rc != 0:
+        # curl failed — likely connection refused or timeout
+        error_msg = stderr.strip() if stderr.strip() else stdout.strip()
+        return {
+            "tool_name": "curl", "target": target, "success": False,
+            "data": {}, "raw_output": stdout + stderr,
+            "error": f"HTTP request failed: {error_msg}", "duration_seconds": duration,
+        }
+
+    # parse curl -w output
+    http_code = None
+    time_total = None
+    speed_download = None
+
+    for part in stdout.split():
+        if part.startswith("http_code:"):
+            try: http_code = int(part.split(":")[1])
+            except ValueError: pass
+        elif part.startswith("time_total:"):
+            try: time_total = float(part.split(":")[1])
+            except ValueError: pass
+        elif part.startswith("speed_download:"):
+            try: speed_download = float(part.split(":")[1])
+            except ValueError: pass
+
+    return {
+        "tool_name": "curl", "target": target, "success": True,
+        "data": {
+            "http_code": http_code,
+            "time_total_seconds": time_total,
+            "speed_download_bytes_per_sec": speed_download,
+        },
+        "raw_output": stdout, "error": "", "duration_seconds": duration,
+    }
+
+
 DOCKER_TOOLS = {
     "ping":       run_ping_docker,
     "dns":        run_dns_docker,
     "traceroute": run_traceroute_docker,
+    "curl":       run_curl_docker,
 }
 
 MAX_STEPS = 5
@@ -240,7 +290,7 @@ def diagnose_react_docker(symptom, model=DEFAULT_MODEL):
             react_trace.append({"step": step + 1, "thought": thought, "action": tool_name})
 
             if tool_name not in DOCKER_TOOLS:
-                observation = f"OBSERVATION: Unknown tool '{tool_name}'. Available: ping, dns, traceroute"
+                observation = f"OBSERVATION: Unknown tool '{tool_name}'. Available: ping, dns, traceroute, curl"
             elif tool_name in tools_used:
                 observation = f"OBSERVATION: {tool_name} already ran. Use a different tool or provide diagnosis."
             else:
@@ -292,10 +342,9 @@ def diagnose_react_docker(symptom, model=DEFAULT_MODEL):
 # baseline
 # ---------------------------------------------------------------------------
 
-NAIVE_SYSTEM_PROMPT = """You are a network diagnostic assistant.
-
-A user has reported a network problem. Based ONLY on their description (no diagnostic tools available),
-guess the most likely root cause.
+NAIVE_SYSTEM_PROMPT = """You are a helpful assistant. A user has reported a network problem.
+Based ONLY on their description (you have no diagnostic tools available), pick the most
+likely root cause from the list below.
 
 Respond with a JSON object:
 {
