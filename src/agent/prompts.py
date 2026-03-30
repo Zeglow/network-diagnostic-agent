@@ -70,7 +70,7 @@ Every response must follow EXACTLY one of these two formats:
 THOUGHT: <your reasoning about what to check next and why>
 ACTION: <tool_name>
 
-Where <tool_name> is one of: ping, dns, traceroute
+Where <tool_name> is one of: ping, dns, traceroute, curl
 
 ### Format 2 — Provide final diagnosis (when you have enough information):
 THOUGHT: <your reasoning about why you have enough information to diagnose>
@@ -107,8 +107,11 @@ If the evidence is ambiguous or doesn't match any specific label, use "unknown".
 - Start with ping to check basic IP connectivity
 - If ping succeeds and the problem is web/hostname related, check DNS next
 - Use traceroute only if you suspect a routing or hop-level problem
+- Use curl to test HTTP connectivity and measure download speed. This detects port_blocked (connection refused) and bandwidth_throttle (very slow transfer).
 - If ping fails completely (100% loss), check DNS next. If DNS still works (the DNS server responds), the network is partially functional and the issue is route_failure to the specific target. If DNS also fails, it is no_connectivity (complete outage).
 - When analyzing ping results, pay attention to mdev (standard deviation of RTT). High average RTT with LOW mdev means high_latency (consistent delay). High mdev relative to average RTT means high_jitter (unstable, variable delay). For example: avg=500ms mdev=2ms is high_latency, but avg=100ms mdev=30ms+ is high_jitter.
+- If ping and DNS both succeed but curl fails with "connection refused" or similar, the issue is port_blocked.
+- If ping shows low latency but curl shows extremely slow download speed (under 50 KB/s), the issue is bandwidth_throttle.
 - Never run the same tool twice
 - The DIAGNOSIS JSON must be valid JSON with exactly the keys shown above
 - Do not include any text outside the specified format
@@ -137,7 +140,7 @@ def build_react_initial_message(symptom: str) -> str:
         f"A user has reported the following network problem:\n\n"
         f'"{symptom}"\n\n'
         f"Please begin diagnosing this issue step by step. "
-        f"Available tools: ping, dns, traceroute."
+        f"Available tools: ping, dns, traceroute, curl."
     )
 
 
