@@ -3,6 +3,7 @@
 from src.tools.ping import PingTool
 from src.tools.dns import DNSTool
 from src.tools.traceroute import TracerouteTool
+from src.tools.curl import CurlTool
 from src.agent.llm import get_diagnosis, get_react_decision, parse_react_response, DEFAULT_MODEL
 from src.agent.prompts import (
     REACT_SYSTEM_PROMPT,
@@ -79,6 +80,7 @@ AVAILABLE_TOOLS = {
     "ping":       PingTool,
     "dns":        DNSTool,
     "traceroute": TracerouteTool,
+    "curl":       CurlTool,
 }
 
 
@@ -136,7 +138,7 @@ def diagnose_react(symptom: str, model: str = DEFAULT_MODEL) -> dict:
 
             # Guard: don't run unknown or already-used tools
             if tool_name not in AVAILABLE_TOOLS:
-                observation = f"OBSERVATION: Unknown tool '{tool_name}'. Available: ping, dns, traceroute"
+                observation = f"OBSERVATION: Unknown tool '{tool_name}'. Available: ping, dns, traceroute, curl"
             elif tool_name in tools_used:
                 observation = f"OBSERVATION: {tool_name} already ran. Use a different tool or provide diagnosis."
             else:

@@ -1,0 +1,191 @@
+[
+  {
+    "timestamp": "2026-03-29T19:36:34.903657",
+    "scenario": "DNS Failure",
+    "scenario_id": 1,
+    "ground_truth": "dns_failure",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "dns_failure",
+    "correct": true,
+    "tools_used": [
+      "ping",
+      "dns"
+    ],
+    "steps_taken": 3,
+    "duration_seconds": 40.71,
+    "cost_estimate_usd": 0.0006000000000000001,
+    "summary": "The diagnostic tools found that local network connectivity is working, but DNS resolution for external websites is failing.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:37:04.341647",
+    "scenario": "High Packet Loss",
+    "scenario_id": 2,
+    "ground_truth": "packet_loss",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "packet_loss",
+    "correct": true,
+    "tools_used": [
+      "ping"
+    ],
+    "steps_taken": 2,
+    "duration_seconds": 24.65,
+    "cost_estimate_usd": 0.0004,
+    "summary": "The network is experiencing significant packet loss (40%), causing intermittent connectivity issues and explaining why services are only partially working.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:37:32.620980",
+    "scenario": "High Latency",
+    "scenario_id": 3,
+    "ground_truth": "high_latency",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "high_latency",
+    "correct": true,
+    "tools_used": [
+      "ping"
+    ],
+    "steps_taken": 2,
+    "duration_seconds": 23.48,
+    "cost_estimate_usd": 0.0004,
+    "summary": "Network diagnostics show very high and consistent latency (over 500ms RTT) to the target, with no packet loss. This high latency is the cause of the reported 'slow internet' experience.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:37:45.598996",
+    "scenario": "Route Failure",
+    "scenario_id": 4,
+    "ground_truth": "route_failure",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "route_failure",
+    "correct": true,
+    "tools_used": [
+      "traceroute",
+      "ping",
+      "dns"
+    ],
+    "steps_taken": 4,
+    "duration_seconds": 8.14,
+    "cost_estimate_usd": 0.0008,
+    "summary": "The server at 172.18.0.2 is unreachable. Basic IP connectivity and route tracing both failed, while DNS resolution for external sites is working correctly.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:38:16.378144",
+    "scenario": "Port Blocked",
+    "scenario_id": 5,
+    "ground_truth": "port_blocked",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "port_blocked",
+    "correct": true,
+    "tools_used": [
+      "ping",
+      "curl"
+    ],
+    "steps_taken": 3,
+    "duration_seconds": 25.83,
+    "cost_estimate_usd": 0.0006000000000000001,
+    "summary": "The server is reachable via IP (ping successful), but the application service is not accessible (curl failed to connect). This indicates the service is either not running or its port is blocked.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:39:03.481055",
+    "scenario": "Complete Outage",
+    "scenario_id": 6,
+    "ground_truth": "no_connectivity",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "no_connectivity",
+    "correct": true,
+    "tools_used": [
+      "ping",
+      "dns"
+    ],
+    "steps_taken": 3,
+    "duration_seconds": 42.26,
+    "cost_estimate_usd": 0.0006000000000000001,
+    "summary": "Diagnostic checks revealed a complete failure in network connectivity, with both basic IP ping and DNS resolution failing.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:39:37.871456",
+    "scenario": "Intermittent Loss",
+    "scenario_id": 7,
+    "ground_truth": "intermittent_loss",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "unknown",
+    "correct": false,
+    "tools_used": [
+      "curl",
+      "ping",
+      "dns"
+    ],
+    "steps_taken": 4,
+    "duration_seconds": 29.6,
+    "cost_estimate_usd": 0.0008,
+    "summary": "Diagnostic tests show no signs of network instability, packet loss, high latency, DNS resolution issues, or HTTP connectivity problems. All tests passed with excellent performance.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:40:24.943198",
+    "scenario": "Bandwidth Throttle",
+    "scenario_id": 8,
+    "ground_truth": "bandwidth_throttle",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "bandwidth_throttle",
+    "correct": true,
+    "tools_used": [
+      "dns",
+      "ping",
+      "curl"
+    ],
+    "steps_taken": 4,
+    "duration_seconds": 42.41,
+    "cost_estimate_usd": 0.0008,
+    "summary": "The network connection is experiencing limited download speeds of approximately 10 Mbps, which is significantly slower than typical broadband and contributes to the 'super slow' experience. DNS resolution also shows a somewhat high response time of 132 ms, further impacting perceived speed.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:40:53.777782",
+    "scenario": "High Jitter",
+    "scenario_id": 9,
+    "ground_truth": "high_jitter",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "high_jitter",
+    "correct": true,
+    "tools_used": [
+      "ping"
+    ],
+    "steps_taken": 2,
+    "duration_seconds": 24.01,
+    "cost_estimate_usd": 0.0004,
+    "summary": "The diagnostic tests indicate that while there is no packet loss, the network connection is experiencing high jitter, which means the delay in data transmission is highly inconsistent.",
+    "run": 1
+  },
+  {
+    "timestamp": "2026-03-29T19:41:22.132570",
+    "scenario": "Duplicate Packets",
+    "scenario_id": 10,
+    "ground_truth": "duplicate_packets",
+    "model": "gemini-2.5-flash",
+    "mode": "react",
+    "predicted_root_cause": "duplicate_packets",
+    "correct": true,
+    "tools_used": [
+      "ping"
+    ],
+    "steps_taken": 2,
+    "duration_seconds": 23.58,
+    "cost_estimate_usd": 0.0004,
+    "summary": "The network connection has duplicate packets, which can lead to data corruption and issues with web page rendering.",
+    "run": 1
+  }
+]
