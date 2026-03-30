@@ -6,7 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Status](https://img.shields.io/badge/status-Iter%202%20complete-brightgreen)]()
+[![Status](https://img.shields.io/badge/status-Iter%203%20complete-brightgreen)]()
 [![CS5700](https://img.shields.io/badge/Northeastern-CS%205700-red)]()
 
 ---
@@ -58,7 +58,7 @@ A diagnostic agent that:
 
 ## How It Works
 
-### Iter 1 — Foundation (Current)
+### Iter 1 — Foundation (Complete)
 
 ```
 User: "I can't load any websites"
@@ -108,6 +108,15 @@ Stop → deliver diagnosis
 This mirrors how a human network engineer actually troubleshoots —
 adaptively, based on evidence — rather than running every tool every time.
 
+
+### Iter 3 — Evaluation Framework (Complete)
+
+Added a fourth tool (`curl`) for HTTP-layer diagnosis, a Docker sandbox
+with 10 fault injection scenarios, and an automated evaluation framework.
+
+Result: **90% diagnostic accuracy** on ambiguous user descriptions
+vs **50% for a naive LLM baseline** (gemini-2.5-flash).
+
 ---
 
 ## Features & User Stories
@@ -143,7 +152,7 @@ adaptively, based on evidence — rather than running every tool every time.
 
 ---
 
-### Feature 3 — Reproducible Fault Injection Testing Environment ⬜ (Iter 3)
+### Feature 3 — Reproducible Fault Injection Testing Environment ✅ (Iter 3)
 > **Who:** As a developer or instructor evaluating the agent
 >
 > **Why:** So that I can validate the agent's diagnostic accuracy objectively
@@ -155,7 +164,7 @@ adaptively, based on evidence — rather than running every tool every time.
 - Docker environment starts with `docker compose up`
 - 10 fault scenarios injectable (DNS failure, packet loss, high latency, etc.)
 - Accuracy measured by `predicted root_cause == ground truth label` — not keyword matching
-- Benchmark across 5 LLM providers with accuracy-vs-cost comparison
+- Benchmark produces 90% agent accuracy vs 50% naive LLM baseline on ambiguous symptom descriptions
 
 ---
 
@@ -283,8 +292,8 @@ The web interface includes a model selector — no terminal knowledge required.
 |-----------|-------|---------|--------|
 | Iter 1 | 5–7 | Basic diagnostics + LLM explanation + web UI | ✅ Complete |
 | Iter 2 | 8–9 | ReAct loop — adaptive tool selection | ✅ Complete |
-| Iter 3 | 10–11 | Docker fault injection + multi-model evaluation | ⬜ Planned |
-| Final | 12–13 | Report + presentation + public dataset | ⬜ Planned |
+| Iter 3 | 10–11 | Docker fault injection + evaluation + curl tool | ✅ Complete |
+| Final | 12–13 | Report + presentation | ⬜ Planned |
 
 ---
 
@@ -294,11 +303,11 @@ We evaluate against **10 Docker-injected fault scenarios** with ground truth lab
 
 | # | Scenario | Injected Fault | Ground Truth Label |
 |---|----------|---------------|-------------------|
-| 1 | DNS Failure | Block UDP port 53 | `dns_failure` |
+| 1 | DNS Failure | Replace /etc/resolv.conf with invalid DNS | `dns_failure` |
 | 2 | High Packet Loss | `tc netem loss 30%` | `packet_loss` |
 | 3 | High Latency | `tc netem delay 500ms` | `high_latency` |
-| 4 | Route Failure | Drop packets at hop N | `route_failure` |
-| 5 | Port Blocked | `iptables REJECT port 443` | `port_blocked` |
+| 4 | Route Failure | ip route add blackhole | `route_failure` |
+| 5 | Port Blocked | `iptables REJECT port 80` | `port_blocked` |
 | 6 | Complete Outage | Block all egress | `no_connectivity` |
 | 7 | Intermittent Loss | `tc netem loss 10% 25%` | `intermittent_loss` |
 | 8 | Bandwidth Throttle | `tc tbf rate 100kbit` | `bandwidth_throttle` |
@@ -308,7 +317,7 @@ We evaluate against **10 Docker-injected fault scenarios** with ground truth lab
 Accuracy is measured by comparing `predicted["root_cause"] == ground_truth_label` —
 not keyword matching.
 
-Multi-model benchmark produces an accuracy-vs-cost chart across all 5 providers.
+ReAct agent achieves 90% accuracy vs 50% naive LLM baseline on ambiguous symptom descriptions (gemini-2.5-flash).
 
 ---
 
@@ -326,7 +335,7 @@ Most "AI + networking" projects simply pass raw tool output to ChatGPT and displ
 
 ## Team
 
-**Ashley (Yongqi) Ou** — Agent core, LLM integration (multi-provider), prompt engineering, web interface, evaluation framework, project coordination
+**Ashley (Yongqi) Ou** — Agent core, LLM integration (multi-provider), prompt engineering, curl tool, web interface, evaluation framework, project coordination
 
 **Avery (Weiyu) Qiu** — Diagnostic tool wrappers, Docker sandbox, fault injection scripts, CLI interface, demo videos
 
