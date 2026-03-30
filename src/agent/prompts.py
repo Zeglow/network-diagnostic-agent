@@ -107,7 +107,8 @@ If the evidence is ambiguous or doesn't match any specific label, use "unknown".
 - Start with ping to check basic IP connectivity
 - If ping succeeds and the problem is web/hostname related, check DNS next
 - Use traceroute only if you suspect a routing or hop-level problem
-- If ping fails completely, you likely have enough to diagnose — skip remaining tools
+- If ping fails completely (100% loss), check DNS next. If DNS still works (the DNS server responds), the network is partially functional and the issue is route_failure to the specific target. If DNS also fails, it is no_connectivity (complete outage).
+- When analyzing ping results, pay attention to mdev (standard deviation of RTT). High average RTT with LOW mdev means high_latency (consistent delay). High mdev relative to average RTT means high_jitter (unstable, variable delay). For example: avg=500ms mdev=2ms is high_latency, but avg=100ms mdev=30ms+ is high_jitter.
 - Never run the same tool twice
 - The DIAGNOSIS JSON must be valid JSON with exactly the keys shown above
 - Do not include any text outside the specified format
